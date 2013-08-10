@@ -1,0 +1,377 @@
+library ieee;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_ARITH.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+entity cpu1 is
+    Port (  data: inout  STD_LOGIC_VECTOR (6 downto 0); 
+           addr : inout STD_LOGIC_VECTOR (3 downto 0);
+             p1 : inout  STD_LOGIC_vector(1 downto 0);
+               p2 : inout  STD_LOGIC_vector(1 downto 0);
+               opsel : inout STD_LOGIC_vector(2 downto 0);
+           c : out  STD_LOGIC_vector(1 downto 0);
+  		   clk : in  STD_LOGIC;
+          rst : in  STD_LOGIC;
+           intrupt : in  STD_LOGIC;
+           mem_rd : out  STD_LOGIc			  
+
+);
+end cpu1;
+
+
+architecture rtl of cpu1 is
+
+component rom is
+Port ( addr : in  STD_LOGIC_VECTOR (3 downto 0);
+           data : out   STD_LOGIC_VECTOR (6 downto 0));
+			 
+end component;
+
+component instr_reg is
+    Port ( data: in std_logic_vector (6 downto 0);
+	       
+           opsel : out  STD_LOGIC_vector(2 downto 0)
+			  );
+end component;
+
+component da_fe is
+    Port ( data : in  STD_LOGIC_VECTOR (6 downto 0);
+           p1 : out  STD_LOGIC_VECTOR (1 downto 0);
+           p2 : out  STD_LOGIC_VECTOR (1 downto 0)
+			 );
+end component da_fe;
+
+component pc IS
+PORT (
+clk : IN STD_LOGIC;
+rst : IN STD_LOGIC;
+intrupt : IN STD_ULOGIC;
+addr : OUT STD_LOGIC_VECTOR(3 DOWNTO 0) );
+END component;
+
+component comp is
+    Port ( 
+	 opsel : in  STD_LOGIC_VECTOR (2 downto 0);
+           p1 : in  STD_LOGIC_VECTOR (1 downto 0);
+           p2 : in  STD_LOGIC_VECTOR (1 downto 0);
+           c : out  STD_LOGIC_VECTOR (1 downto 0));
+end component;
+
+
+
+
+begin
+v7:pc port map(clk,rst,intrupt,addr);
+x1:rom port map(addr,data);
+z3:da_fe port map(data,p1,p2);
+y2:instr_reg port map(data,opsel);
+t4:comp port map(opsel,p1,p2,c);
+mem_rd<='1';
+
+end rtl;
+		 
+     
+     
+     
+   library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_ARITH.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+
+
+
+ENTITY pc IS
+PORT (
+clk : IN STD_LOGIC;
+rst : IN STD_LOGIC;
+intrupt:in std_logic;
+--pc_in : IN STD_ULOGIC_VECTOR(3 DOWNTO 0);
+--addr : IN STD_ULOGIC;
+addr : OUT STD_LOGIC_VECTOR(3 DOWNTO 0) );
+END pc;
+
+architecture Behavioral of pc is
+
+begin
+proc_pc : PROCESS(clk, intrupt,rst)
+variable pc_temp : STD_LOGIC_VECTOR(3 DOWNTO 0):="0000";
+BEGIN
+IF rst = '1' THEN
+pc_temp := (OTHERS => '0');
+elsif intrupt='0' then
+pc_temp:="0011";
+ELSIF rising_edge(clk) THEN
+
+pc_temp := pc_temp+"0001";
+
+addr <= pc_temp;
+END IF;
+--END IF;
+addr <= pc_temp;
+END PROCESS;
+END behavioral;
+
+
+
+
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_ARITH.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+
+entity rom is
+    Port ( addr : in  STD_LOGIC_VECTOR (3 downto 0);
+           data : out  STD_LOGIC_VECTOR (6 downto 0));
+  		   --ready1:out std_logic);
+end rom;
+
+
+
+
+
+architecture behavioral of ROM is
+
+type romtable is   array (0 to 15) of std_logic_vector (6 downto 0);  
+-- internal table
+constant romdata : romtable := (
+"0001100", -- data for address 0
+"1111100", -- data for address 1
+"1011010",--2  
+"1101100",--3
+"1001100",--4
+"0011000",--5
+"1111110",--6
+"1100111",--7
+"1101100",--8
+"1101010",--9
+"1101111",--10
+"0101110",--11
+"0001100",--12
+"1011010",--13
+"1000100", --14
+"1011000"-- data for address 15
+);
+begin -- BEHAVIOR
+--ready1<='1';
+data <= romdata (conv_integer(ADDR));
+
+end behavioral;
+
+
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_ARITH.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+--use work.p_addr_convert.all;
+
+entity da_fe is
+    Port ( data : in  STD_LOGIC_VECTOR (6 downto 0);
+           p1 : out  STD_LOGIC_VECTOR (1 downto 0);
+           p2 : out  STD_LOGIC_VECTOR (1 downto 0)
+  		  --signal data : inout  STD_LOGIC_VECTOR (5 downto 0)
+			  );
+end da_fe;
+
+architecture Behavioral of da_fe is
+
+--component rom is
+--Port ( addr : in  STD_LOGIC_VECTOR (3 downto 0);
+--           data : out  STD_LOGIC_VECTOR (6 downto 0));
+--end component;
+
+signal data2,data3,data4,data5 :STD_LOGIC_VECTOR (6 downto 0); 
+
+BEGIN
+
+
+data3<=data;
+data4<=data;
+data2<=data3 and "0001100";
+
+ with data2 select
+     p1 <="00" when "0000000",
+       "01" when "0000100",
+       "10" when "0001000",
+       "11" when others;
+	
+--	q2:rom port map(addr,data);
+--	 	data4<=data;	 
+data5<=data4 and "0000011";
+ 
+ with data5 select
+  p2 <="00" when "0000000",
+       "01" when "0000001",
+       "10" when "0000010",
+       "11" when others;
+
+
+end Behavioral;
+
+
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_ARITH.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+
+
+entity instr_reg is
+    Port ( data: in std_logic_vector (6 downto 0);
+         --signal  data1 :  STD_LOGIC_VECTOR ( 5 downto 0);
+           opsel : out  STD_LOGIC_vector(2 downto 0)
+			 -- sel: out std_logic
+			 );
+end instr_reg;
+
+architecture Behavioral of instr_reg is
+--component rom is
+--Port ( addr : in  STD_LOGIC_VECTOR (3 downto 0);
+--        data : out STD_LOGIC_VECTOR (6 downto 0));
+--end component;
+
+
+ 
+--signal d2:std_logic_vector(6 downto 0); 
+--signal d3:std_logic_vector(6 downto 0);
+
+begin
+process(data)
+variable data1,d2:  STD_LOGIC_VECTOR (6 downto 0);
+begin
+--x1:rom port map(addr,data);
+data1:=data;
+d2:=data1 and "1110000";
+--d3<=data1 and"1000000";
+ case d2 is
+
+ when"0000000"=> 
+ opsel<="000" ;
+ when"0010000"=> 
+ opsel<= "001";
+ when"0100000"=> 
+ opsel<= "010";
+ when "0110000"=> 
+ opsel<= "011";
+  
+ when"1000000"=> 
+ opsel<="100";
+ when"1010000"=> 
+ opsel<= "101";
+ when"1100000"=> 
+ opsel<= "110";
+ when others=> 
+ opsel<="111";
+
+end case;
+
+end process;
+	
+
+end Behavioral;
+
+
+
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_ARITH.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+
+---- Uncomment the following library declaration if instantiating
+---- any Xilinx primitives in this code.
+--library UNISIM;
+--use UNISIM.VComponents.all;
+
+entity comp is
+    Port (--sel:in std_logic_vector(1 downto 0); 
+        --sel:in std_logic;
+	      opsel : in  STD_LOGIC_VECTOR (2 downto 0);
+	        p1 : in  STD_LOGIC_VECTOR (1 downto 0);
+           p2 : in  STD_LOGIC_VECTOR (1 downto 0);
+           c : out  STD_LOGIC_VECTOR (1 downto 0));
+end comp;
+
+architecture Behavioral of comp is
+
+begin
+z:process(opsel,p1,p2)
+begin
+
+ 
+
+case opsel is
+
+ when"000"=> 
+ c<=p1 and p2 ;
+ when"001"=> 
+ c<=p1 or p2 ;
+ when"010"=> 
+ c<=p1 xor p2 ;
+ when "011"=> 
+ c<=p1 nand p2 ;
+  
+ when"100"=> 
+ c<=p1 + p2 ;
+ when"101"=> 
+ c<=p1 - p2 ;
+ when"110"=> 
+ c<=p1 nor p2 ;
+ when others=> 
+ c<=p1 xnor p2 ;
+
+end case;
+
+
+
+		-- wait for 2 ns;
+		 end process;
+end Behavioral;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+     
+     
+     
+     
+     
+     
